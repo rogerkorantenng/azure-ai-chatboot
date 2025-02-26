@@ -15,7 +15,7 @@ import torch
 
 # Load environment variables from .env file
 load_dotenv()
-login(token="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")
+login(token="")
 
 # File paths for storing model configurations and chat history
 MODEL_CONFIG_FILE = "model_config.json"
