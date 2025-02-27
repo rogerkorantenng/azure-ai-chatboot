@@ -1,0 +1,14 @@
+[
+    {
+        "role": "assistant",
+        "content": "Hello, I am Sage. How can I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "Hello, I am feeling sad today, what should I do?"
+    },
+    {
+        "role": "assistant",
+        "content": "Error: 400 Client Error: Missing Authorization header for url: https://deepseek-r1-qbkdh.eastus2.models.ai.azure.com/"
+    }
+]

@@ -15,7 +15,7 @@ import torch
 
 # Load environment variables from .env file
 load_dotenv()
-login(token="")
+login(token="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")
 
 # File paths for storing model configurations and chat history
 MODEL_CONFIG_FILE = "model_config.json"
@@ -46,6 +46,11 @@ def load_model_config():
         "gpt-4-32k": {
             "endpoint": "https://roger-m38orjxq-australiaeast.openai.azure.com/openai/deployments/gpt-4-32k/chat/completions?api-version=2024-08-01-preview",
             "api_key": os.getenv("GPT4_32K_API_KEY"),
+            "model_path": None
+        },
+	"DeepSeek-R1": {
+            "endpoint": "https://DeepSeek-R1-qbkdh.eastus2.models.ai.azure.com",
+            "api_key": os.getenv("DEEP_SEEK_API_KEY"),
             "model_path": None
         }
     }
