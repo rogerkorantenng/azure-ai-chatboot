@@ -7,11 +7,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from huggingface_hub import login
 from datetime import datetime
 import numpy as np
-import torch
 from gtts import gTTS
 import tempfile
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer
 import torch
+from azure.ai.inference import ChatCompletionsClient
+from azure.core.credentials import AzureKeyCredential
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,8 +50,8 @@ def load_model_config():
             "api_key": os.getenv("GPT4_32K_API_KEY"),
             "model_path": None
         },
-	"DeepSeek-R1": {
-            "endpoint": "https://DeepSeek-R1-qbkdh.eastus2.models.ai.azure.com",
+	    "DeepSeek-R1": {
+            "endpoint": "https://DeepSeek-R1-qbkdh.eastus2.models.ai.azure.com/v1/chat/completions",
             "api_key": os.getenv("DEEP_SEEK_API_KEY"),
             "model_path": None
         }
@@ -115,17 +117,19 @@ def generate_response(model_choice, user_message, chat_history):
         return "Invalid model selection. Please choose a valid model.", chat_history
 
     chat_history.append({"role": "user", "content": user_message})
+
     headers = {"Content-Type": "application/json"}
 
-    # Check if the model is an API model (it will have an endpoint)
+    # Handle API models (if there's an endpoint)
     if model_info["endpoint"]:
-        if model_info["api_key"]:
+        if model_choice.startswith("DeepSeek"):  # Use "Bearer" for DeepSeek
+            headers["Authorization"] = f"Bearer {model_info['api_key']}"
+        else:  # Use "api-key" for OpenAI models
             headers["api-key"] = model_info["api_key"]
 
         data = {"messages": chat_history, "max_tokens": 1500, "temperature": 0.7}
 
         try:
-            # Send request to the API model endpoint
             response = requests.post(model_info["endpoint"], headers=headers, json=data)
             response.raise_for_status()
             assistant_message = response.json()['choices'][0]['message']['content']
@@ -135,8 +139,8 @@ def generate_response(model_choice, user_message, chat_history):
             assistant_message = f"Error: {e}"
             chat_history.append({"role": "assistant", "content": assistant_message})
             save_chat_history(chat_history)
-    else:
-        # If it's a local model, load the model and tokenizer from the local path
+
+    else:  # Handle local models
         model_path = model_info["model_path"]
         try:
             tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -153,12 +157,13 @@ def generate_response(model_choice, user_message, chat_history):
             chat_history.append({"role": "assistant", "content": assistant_message})
             save_chat_history(chat_history)
 
-    # Convert the assistant message to audio
+    # Convert assistant message to audio
     tts = gTTS(assistant_message)
     audio_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
     tts.save(audio_file.name)
 
     return chat_history, audio_file.name
+
 
 # Function to format chat history with custom bubble styles
 def format_chat_bubble(history):
@@ -349,4 +354,4 @@ with gr.Blocks() as interface:
     """
 proxy_prefix = os.environ.get("PROXY_PREFIX")
 # Launch the Gradio interface
-interface.launch(server_name="0.0.0.0", server_port=8080, root_path=proxy_prefix, share=True)
+interface.launch(server_name="0.0.0.0", server_port=9000, root_path=proxy_prefix, share=True)
