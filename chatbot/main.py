@@ -6,13 +6,10 @@ import requests
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from huggingface_hub import login
 from datetime import datetime
-import numpy as np
 from gtts import gTTS
 import tempfile
-from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer
-import torch
-from azure.ai.inference import ChatCompletionsClient
-from azure.core.credentials import AzureKeyCredential
+import soundfile as sf
+
 
 
 # Load environment variables from .env file
@@ -184,34 +181,34 @@ def format_chat_bubble(history):
             '''
     return formatted_history
 
-tokenizer = Wav2Vec2Tokenizer.from_pretrained("facebook/wav2vec2-base-960h")
-model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+WHISPER_ENDPOINT = "https://roger-whisper.openai.azure.com/openai/deployments/whisper/audio/translations?api-version=2024-06-01"
+WHISPER_API_KEY = os.getenv("WHISPER_API_KEY")
 
 def transcribe(audio):
     if audio is None:
         return "No audio input received."
 
-    sr, y = audio
+    sr, y = audio  # Unpack the sample rate and audio array
 
-    # Convert to mono if stereo
-    if y.ndim > 1:
-        y = y.mean(axis=1)
+    # Save the audio as a temporary WAV file
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+        temp_audio_path = temp_audio.name
+        sf.write(temp_audio_path, y, sr)
 
-    y = y.astype(np.float32)
-    y /= np.max(np.abs(y))
+    # Send the audio file to Whisper API
+    headers = {"api-key": WHISPER_API_KEY}  # Corrected header
+    with open(temp_audio_path, "rb") as audio_file:
+        files = {"file": audio_file}
+        response = requests.post(WHISPER_ENDPOINT, headers=headers, files=files)
 
-    # Tokenize the audio
-    input_values = tokenizer(y, return_tensors="pt", sampling_rate=sr).input_values
+    # Delete the temporary file
+    os.remove(temp_audio_path)
 
-    # Perform inference
-    with torch.no_grad():
-        logits = model(input_values).logits
-
-    # Decode the logits
-    predicted_ids = torch.argmax(logits, dim=-1)
-    transcription = tokenizer.decode(predicted_ids[0])
-
-    return transcription
+    # Process the response
+    if response.status_code == 200:
+        return response.json().get("text", "No transcription returned.")
+    else:
+        return f"Error: {response.status_code}, {response.text}"
 
 # Create the Gradio interface
 with gr.Blocks() as interface:
@@ -289,7 +286,7 @@ with gr.Blocks() as interface:
     with gr.Tab("Speech Interface"):
         gr.Markdown("### Speak with Sage")
 
-        audio_input = gr.Audio(type="numpy")
+        audio_input = gr.Audio(type="numpy", label="Record Audio")
         transcribe_button = gr.Button("Transcribe")
         transcribed_text = gr.Textbox(label="Transcribed Text")
 
