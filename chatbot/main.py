@@ -14,8 +14,7 @@ import soundfile as sf
 
 # Load environment variables from .env file
 load_dotenv()
-login(token="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")
-
+token = os.getenv("TOKEN")
 # File paths for storing model configurations and chat history
 MODEL_CONFIG_FILE = "model_config.json"
 CHAT_HISTORY_FILE = "chat_history.json"
@@ -56,11 +55,11 @@ def load_model_config():
 
 predefined_messages = {
     "feeling_sad": "Hello, I am feeling sad today, what should I do?",
-    "Nobody likes me": "Hello, Sage. I feel like nobody likes me. What should I do?",
-    'Boyfriend broke up': "Hi Sage, my boyfriend broke up with me. I'm feeling so sad. What should I do?",
-    'I am lonely': "Hi Sage, I am feeling lonely. What should I do?",
-    'I am stressed': "Hi Sage, I am feeling stressed. What should I do?",
-    'I am anxious': "Hi Sage, I am feeling anxious. What should I do?",
+    "Nobody likes me": "Hello, Azure AI. I feel like nobody likes me. What should I do?",
+    'Boyfriend broke up': "Hi Azure AI, my boyfriend broke up with me. I'm feeling so sad. What should I do?",
+    'I am lonely': "Hi Azure AI, I am feeling lonely. What should I do?",
+    'I am stressed': "Hi Azure AI, I am feeling stressed. What should I do?",
+    'I am anxious': "Hi Azure AI, I am feeling anxious. What should I do?",
 }
 
 # Save model configuration to JSON
@@ -176,7 +175,7 @@ def format_chat_bubble(history):
         else:
             formatted_history += f'''
                 <div class="assistant-bubble">
-                    <strong>Sage:</strong> {message["content"]}
+                    <strong>Azure AI:</strong> {message["content"]}
                 </div>
             '''
     return formatted_history
@@ -212,7 +211,7 @@ def transcribe(audio):
 
 # Create the Gradio interface
 with gr.Blocks() as interface:
-    gr.Markdown("## Chat with Sage - Your Mental Health Advisor")
+    gr.Markdown("## Chat with Azure AI - Your Mental Health Advisor")
 
     with gr.Tab("Model Management"):
         with gr.Tabs():
@@ -244,14 +243,14 @@ with gr.Blocks() as interface:
                                      outputs=model_dropdown)
 
     with gr.Tab("Chat Interface"):
-        gr.Markdown("### Chat with Sage")
+        gr.Markdown("### Chat with Azure AI")
 
         # Chat history state for tracking conversation
         chat_history_state = gr.State(load_chat_history())  # Load existing chat history
 
         # Add initial introduction message
         if not chat_history_state.value:
-            chat_history_state.value.append({"role": "assistant", "content": "Hello, I am Sage. How can I assist you today?"})
+            chat_history_state.value.append({"role": "assistant", "content": "Hello, I am Azure AI. How can I assist you today?"})
 
         chat_display = gr.HTML(label="Chat", value=format_chat_bubble(chat_history_state.value), elem_id="chat-display")
 
@@ -284,7 +283,7 @@ with gr.Blocks() as interface:
             )
 
     with gr.Tab("Speech Interface"):
-        gr.Markdown("### Speak with Sage")
+        gr.Markdown("### Speak with Azure AI")
 
         audio_input = gr.Audio(type="numpy", label="Record Audio")
         transcribe_button = gr.Button("Transcribe")
